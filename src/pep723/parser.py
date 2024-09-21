@@ -17,6 +17,11 @@ def parse(script: str) -> ScriptMetadata:
     matches = list(
         filter(lambda m: m.group("type") == name, re.finditer(REGEX, script))
     )
+    if len(matches) > 1:
+        raise ValueError(
+            f"Multiple {name} blocks found. You can write only one"
+        )
+
     content = "".join(
         line[2:]
         for line in matches[0].group("content").splitlines(keepends=True)
