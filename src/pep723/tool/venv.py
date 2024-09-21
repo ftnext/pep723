@@ -20,7 +20,7 @@ class WithDependenciesEnvBuilder(EnvBuilder):
         return super()._call_new_python(context, *py_args, **kwargs)
 
 
-def create_venv_with_dependencies(
+def create_with_dependencies(
     venv_path: str, dependencies: Iterable[str]
 ) -> None:
     builder = WithDependenciesEnvBuilder(
