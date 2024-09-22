@@ -21,6 +21,20 @@ multiple_lines_dependencies_script = """\
 # ///\
 """
 
+# >otherwise just the first character
+# >(which means the line consists of only a single #)
+# ref: https://peps.python.org/pep-0723/#specification
+empty_line_metadata_script = """\
+# /// script
+#
+# dependencies = [
+#
+#   "httpx",
+#
+# ]
+# ///\
+"""
+
 
 @pytest.mark.parametrize(
     "script,expected",
@@ -30,10 +44,12 @@ multiple_lines_dependencies_script = """\
             multiple_lines_dependencies_script,
             {"dependencies": ["requests<3", "rich"]},
         ),
+        (empty_line_metadata_script, {"dependencies": ["httpx"]}),
     ],
     ids=[
         "single line dependencies",
         "multiple line dependencies",
+        "empty line metadata",
     ],
 )
 def test_parse(script, expected):
