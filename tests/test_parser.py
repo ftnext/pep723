@@ -1,6 +1,13 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import pytest
 
 from pep723.parser import parse
+
+if TYPE_CHECKING:
+    from pep723.parser import ScriptMetadata
 
 single_line_dependencies_script = """\
 # /// script
@@ -52,11 +59,11 @@ empty_line_metadata_script = """\
         "empty line metadata",
     ],
 )
-def test_parse(script, expected):
+def test_parse(script: str, expected: ScriptMetadata) -> None:
     assert parse(script) == expected
 
 
-def test_raise_error_when_multiple_scripts_found():
+def test_raise_error_when_multiple_scripts_found() -> None:
     script = """\
 # /// script
 # dependencies = [
