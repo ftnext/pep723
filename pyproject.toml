@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pep723"
-description = "TODO write description or delete"
+description = "Implementation of PEP 723 (inline script metadata)"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "Apache Software License" }
 authors = [{ name = "nikkie", email = "takuyafjp+develop@gmail.com" }]
-keywords = ["TODO", "write", "keywords"]
+keywords = ["inline script metadata"]
 classifiers = [
     "Development Status :: 1 - Planning",
     "License :: OSI Approved :: Apache Software License",
