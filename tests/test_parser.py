@@ -42,6 +42,17 @@ empty_line_metadata_script = """\
 # ///\
 """
 
+tail_metadata_script = """\
+import time
+from rich.progress import track
+
+for i in track(range(20), description="For example:"):
+    time.sleep(0.05)
+# /// script
+# dependencies = ["rich"]
+# ///\
+"""
+
 
 @pytest.mark.parametrize(
     "script,expected",
@@ -52,11 +63,13 @@ empty_line_metadata_script = """\
             {"dependencies": ["requests<3", "rich"]},
         ),
         (empty_line_metadata_script, {"dependencies": ["httpx"]}),
+        (tail_metadata_script, {"dependencies": ["rich"]}),
     ],
     ids=[
         "single line dependencies",
         "multiple line dependencies",
         "empty line metadata",
+        "tail metadata",
     ],
 )
 def test_parse(script: str, expected: ScriptMetadata) -> None:
