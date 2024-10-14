@@ -22,8 +22,8 @@ def parse(script: str) -> ScriptMetadata:
             f"Multiple {name} blocks found. You can write only one"
         )
 
+    group = matches[0].groupdict()
     content = "".join(
-        line[2:]
-        for line in matches[0].group("content").splitlines(keepends=True)
+        line[2:] for line in group["content"].splitlines(keepends=True)
     )
     return cast(ScriptMetadata, tomllib.loads(content))
