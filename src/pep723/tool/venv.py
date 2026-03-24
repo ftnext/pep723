@@ -24,6 +24,6 @@ def create_with_dependencies(
     venv_path: str, dependencies: Iterable[str]
 ) -> None:
     builder = WithDependenciesEnvBuilder(
-        dependencies=dependencies, with_pip=True
+        dependencies=dependencies, with_pip=True, symlinks=True
     )
     builder.create(venv_path)
