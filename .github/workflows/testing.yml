@@ -23,3 +23,22 @@ jobs:
       - name: Run tests
         run: |
           task test
+
+  tests-macos-uv-python313:
+    runs-on: macos-latest
+    env:
+      UV_SYSTEM_PYTHON: "1"
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Install uv and set up Python 3.13
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          python-version: "3.13"
+          enable-cache: true
+      - name: Install dependencies
+        run: |
+          uv pip install .[dev]
+      - name: Run tests
+        run: |
+          task test
