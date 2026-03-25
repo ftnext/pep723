@@ -42,4 +42,5 @@ jobs:
           uv pip install --python .venv/bin/python .[dev]
       - name: Run tests
         run: |
-          .venv/bin/task test
+          export PATH="$PWD/.venv/bin:$PATH"
+          task test
