@@ -10,8 +10,13 @@ from pep723.parser import REGEX
 
 
 def _pkg_name(specifier: str) -> str:
+    """Normalize a specifier to its canonical package key for dedup.
+
+    Extras (e.g. requests[socks]) are preserved so that a bare package
+    and its extras variant are NOT treated as duplicates.
+    """
     return (
-        re.split(r"[<>=!~;\[,\s]", specifier, maxsplit=1)[0]
+        re.split(r"[<>=!~;\s]", specifier, maxsplit=1)[0]
         .lower()
         .replace("-", "_")
     )
@@ -67,6 +72,11 @@ def add_dependencies(script: str, new_deps: Sequence[str]) -> str:
         deps_lines.append("]\n")
         content = _add_comment_prefix("".join(deps_lines))
         block = f"# /// script\n{content}# ///\n"
+        if script.startswith("#!"):
+            first_newline = script.index("\n") + 1
+            return (
+                script[:first_newline] + "\n" + block + script[first_newline:]
+            )
         if script:
             return block + "\n" + script
         return block

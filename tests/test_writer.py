@@ -124,6 +124,38 @@ import sys
 # ///
 """,
         ),
+        (
+            script_with_block,
+            ["httpx[http2]"],
+            """\
+# /// script
+# dependencies = [
+#   "httpx",
+#   "rich",
+#   "httpx[http2]",
+# ]
+# ///
+
+import httpx
+""",
+        ),
+        (
+            """\
+#!/usr/bin/env python
+import time
+""",
+            ["requests"],
+            """\
+#!/usr/bin/env python
+
+# /// script
+# dependencies = [
+#   "requests",
+# ]
+# ///
+import time
+""",
+        ),
     ],
     ids=[
         "add new dep to existing block",
@@ -134,6 +166,8 @@ import sys
         "create block for empty script",
         "deduplicate in new_deps",
         "create dependencies key when block has none",
+        "extras variant is not a duplicate of bare package",
+        "preserve shebang when inserting new block",
     ],
 )
 def test_add_dependencies(
