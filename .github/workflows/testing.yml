@@ -24,8 +24,12 @@ jobs:
         run: |
           task test
 
-  tests-macos-uv-python313:
-    runs-on: macos-latest
+  tests-uv-python313:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest, macos-latest]
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
