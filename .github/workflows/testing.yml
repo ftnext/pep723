@@ -42,4 +42,4 @@ jobs:
           uv pip install --python .venv/bin/python .[dev]
       - name: Run tests
         run: |
-          .venv/bin/python -m taskipy test
+          .venv/bin/task test
