@@ -18,7 +18,16 @@ class AddArgs:
     dependencies: list[str]
 
 
+_SUBCOMMANDS = {"run", "add"}
+
+
 def parse_args() -> RunArgs | AddArgs:
+    import sys
+
+    argv = sys.argv[1:]
+    if not argv or argv[0] not in _SUBCOMMANDS:
+        argv = ["run"] + argv
+
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -29,7 +38,7 @@ def parse_args() -> RunArgs | AddArgs:
     add_parser.add_argument("script", type=Path)
     add_parser.add_argument("dependencies", nargs="+")
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     if args.command == "add":
         return AddArgs(
             command=args.command,

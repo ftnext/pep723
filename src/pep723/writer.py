@@ -32,11 +32,18 @@ def _add_comment_prefix(toml_str: str) -> str:
 
 
 def add_dependencies(script: str, new_deps: Sequence[str]) -> str:
-    match = re.search(REGEX, script)
+    matches = [
+        m for m in re.finditer(REGEX, script) if m.group("type") == "script"
+    ]
+    match = matches[0] if matches else None
 
     if match:
         content = _strip_comment_prefix(match.group("content"))
         config = tomlkit.parse(content)
+        if "dependencies" not in config:
+            arr = tomlkit.array()
+            arr.multiline(True)
+            config.add("dependencies", arr)
         existing_deps = cast(list[Any], config["dependencies"])
         existing_names = {_pkg_name(d) for d in existing_deps}
         for dep in new_deps:

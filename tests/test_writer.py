@@ -108,6 +108,22 @@ import time
 import sys
 """,
         ),
+        (
+            """\
+# /// script
+# requires-python = ">=3.11"
+# ///
+""",
+            ["requests"],
+            """\
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#     "requests",
+# ]
+# ///
+""",
+        ),
     ],
     ids=[
         "add new dep to existing block",
@@ -117,6 +133,7 @@ import sys
         "create new block when missing",
         "create block for empty script",
         "deduplicate in new_deps",
+        "create dependencies key when block has none",
     ],
 )
 def test_add_dependencies(
