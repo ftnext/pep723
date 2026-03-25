@@ -156,6 +156,19 @@ import time
 import time
 """,
         ),
+        (
+            "#!/usr/bin/env python",
+            ["requests"],
+            """\
+#!/usr/bin/env python
+
+# /// script
+# dependencies = [
+#   "requests",
+# ]
+# ///
+""",
+        ),
     ],
     ids=[
         "add new dep to existing block",
@@ -168,9 +181,24 @@ import time
         "create dependencies key when block has none",
         "extras variant is not a duplicate of bare package",
         "preserve shebang when inserting new block",
+        "preserve shebang-only file when inserting new block",
     ],
 )
 def test_add_dependencies(
     script: str, new_deps: list[str], expected: str
 ) -> None:
     assert add_dependencies(script, new_deps) == expected
+
+
+def test_raise_error_when_multiple_script_blocks_found() -> None:
+    script = """\
+# /// script
+# dependencies = ["httpx"]
+# ///
+
+# /// script
+# dependencies = ["rich"]
+# ///
+"""
+    with pytest.raises(ValueError):
+        add_dependencies(script, ["requests"])

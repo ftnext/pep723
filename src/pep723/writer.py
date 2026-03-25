@@ -40,6 +40,10 @@ def add_dependencies(script: str, new_deps: Sequence[str]) -> str:
     matches = [
         m for m in re.finditer(REGEX, script) if m.group("type") == "script"
     ]
+    if len(matches) > 1:
+        raise ValueError(
+            "Multiple script blocks found. You can write only one"
+        )
     match = matches[0] if matches else None
 
     if match:
@@ -73,7 +77,10 @@ def add_dependencies(script: str, new_deps: Sequence[str]) -> str:
         content = _add_comment_prefix("".join(deps_lines))
         block = f"# /// script\n{content}# ///\n"
         if script.startswith("#!"):
-            first_newline = script.index("\n") + 1
+            newline_pos = script.find("\n")
+            if newline_pos == -1:
+                return script + "\n\n" + block
+            first_newline = newline_pos + 1
             return (
                 script[:first_newline] + "\n" + block + script[first_newline:]
             )
