@@ -46,6 +46,17 @@ def _add_comment_prefix(toml_str: str) -> str:
     )
 
 
+def _deduplicate(deps: Sequence[str]) -> list[str]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for dep in deps:
+        key = _pkg_key(dep)
+        if key not in seen:
+            result.append(dep)
+            seen.add(key)
+    return result
+
+
 def _block_insert_pos(script: str) -> int:
     """Find the index at which a new PEP 723 block should be inserted.
 
@@ -100,26 +111,20 @@ def add_dependencies(script: str, new_deps: Sequence[str]) -> str:
         new_content = _add_comment_prefix(tomlkit.dumps(config))
         start, end = match.span("content")
         return script[:start] + new_content + script[end:]
-    else:
-        seen_names: set[str] = set()
-        deduped: list[str] = []
-        for dep in new_deps:
-            name = _pkg_key(dep)
-            if name not in seen_names:
-                deduped.append(dep)
-                seen_names.add(name)
-        deps_lines = ["dependencies = [\n"]
-        for dep in deduped:
-            deps_lines.append(f'  "{dep}",\n')
-        deps_lines.append("]\n")
-        content = _add_comment_prefix("".join(deps_lines))
-        block = f"# /// script\n{content}# ///\n"
-        insert_at = _block_insert_pos(script)
-        if insert_at > 0:
-            prefix = script[:insert_at]
-            if not prefix.endswith("\n"):
-                prefix += "\n"
-            return prefix + "\n" + block + script[insert_at:]
-        if script:
-            return block + "\n" + script
-        return block
+
+    deduped = _deduplicate(new_deps)
+    deps_lines = ["dependencies = [\n"]
+    for dep in deduped:
+        deps_lines.append(f'  "{dep}",\n')
+    deps_lines.append("]\n")
+    content = _add_comment_prefix("".join(deps_lines))
+    block = f"# /// script\n{content}# ///\n"
+    insert_at = _block_insert_pos(script)
+    if insert_at > 0:
+        prefix = script[:insert_at]
+        if not prefix.endswith("\n"):
+            prefix += "\n"
+        return prefix + "\n" + block + script[insert_at:]
+    if script:
+        return block + "\n" + script
+    return block
