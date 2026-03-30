@@ -1,19 +1,18 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
 
 @dataclass
 class RunArgs:
-    command: str
     script: Path
 
 
 @dataclass
 class AddArgs:
-    command: str
     script: Path
     dependencies: list[str]
 
@@ -22,8 +21,6 @@ _SUBCOMMANDS = {"run", "add"}
 
 
 def parse_args() -> RunArgs | AddArgs:
-    import sys
-
     argv = sys.argv[1:]
     # Treat as subcommand only when enough args follow to satisfy it.
     # This preserves backward compat for scripts literally named
@@ -50,8 +47,7 @@ def parse_args() -> RunArgs | AddArgs:
     args = parser.parse_args(argv)
     if args.command == "add":
         return AddArgs(
-            command=args.command,
             script=args.script,
             dependencies=args.dependencies,
         )
-    return RunArgs(command=args.command, script=args.script)
+    return RunArgs(script=args.script)

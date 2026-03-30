@@ -51,14 +51,12 @@ def _add_comment_prefix(toml_str: str) -> str:
 
 
 def add_dependencies(script: str, new_deps: Sequence[str]) -> str:
-    matches = [
-        m for m in re.finditer(REGEX, script) if m.group("type") == "script"
-    ]
-    if len(matches) > 1:
+    it = (m for m in re.finditer(REGEX, script) if m.group("type") == "script")
+    match = next(it, None)
+    if match is not None and next(it, None) is not None:
         raise ValueError(
             "Multiple script blocks found. You can write only one"
         )
-    match = matches[0] if matches else None
 
     if match:
         content = _strip_comment_prefix(match.group("content"))
@@ -70,9 +68,10 @@ def add_dependencies(script: str, new_deps: Sequence[str]) -> str:
         existing_deps = cast(list[Any], config["dependencies"])
         existing_names = {_pkg_key(d) for d in existing_deps}
         for dep in new_deps:
-            if _pkg_key(dep) not in existing_names:
+            key = _pkg_key(dep)
+            if key not in existing_names:
                 existing_deps.append(dep)
-                existing_names.add(_pkg_key(dep))
+                existing_names.add(key)
         new_content = _add_comment_prefix(tomlkit.dumps(config))
         start, end = match.span("content")
         return script[:start] + new_content + script[end:]
