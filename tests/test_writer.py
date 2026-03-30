@@ -69,6 +69,23 @@ import httpx
 """,
         ),
         (
+            """\
+# /// script
+# dependencies = [
+#   "zope.interface",
+# ]
+# ///
+""",
+            ["zope_interface"],
+            """\
+# /// script
+# dependencies = [
+#   "zope.interface",
+# ]
+# ///
+""",
+        ),
+        (
             script_without_block,
             ["requests", "rich"],
             """\
@@ -175,6 +192,7 @@ import time
         "skip exact duplicate",
         "skip case-insensitive duplicate",
         "skip hyphen-underscore normalized duplicate",
+        "skip dot-underscore normalized duplicate",
         "create new block when missing",
         "create block for empty script",
         "deduplicate in new_deps",

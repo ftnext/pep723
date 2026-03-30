@@ -25,7 +25,7 @@ def parse_args() -> RunArgs | AddArgs:
     import sys
 
     argv = sys.argv[1:]
-    if not argv or argv[0] not in _SUBCOMMANDS or Path(argv[0]).exists():
+    if not argv or argv[0] not in _SUBCOMMANDS:
         argv = ["run"] + argv
 
     parser = argparse.ArgumentParser()

@@ -19,6 +19,7 @@ def _pkg_name(specifier: str) -> str:
         re.split(r"[<>=!~;\s]", specifier, maxsplit=1)[0]
         .lower()
         .replace("-", "_")
+        .replace(".", "_")
     )
 
 
