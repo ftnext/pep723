@@ -1,3 +1,4 @@
+import io
 import tempfile
 import tokenize
 
@@ -10,9 +11,9 @@ from pep723.writer import add_dependencies
 args = parse_args()
 
 if isinstance(args, AddArgs):
-    with open(args.script, "rb") as f:
-        encoding = tokenize.detect_encoding(f.readline)[0]
-    script_text = args.script.read_text(encoding=encoding)
+    raw = args.script.read_bytes()
+    encoding = tokenize.detect_encoding(io.BytesIO(raw).readline)[0]
+    script_text = raw.decode(encoding)
     updated = add_dependencies(script_text, args.dependencies)
     args.script.write_text(updated, encoding=encoding)
 else:

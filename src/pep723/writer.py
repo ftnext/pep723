@@ -50,6 +50,35 @@ def _add_comment_prefix(toml_str: str) -> str:
     )
 
 
+def _block_insert_pos(script: str) -> int:
+    """Find the index at which a new PEP 723 block should be inserted.
+
+    Skips shebang and PEP 263 encoding cookies so they stay in the
+    first two lines where Python requires them.
+    """
+    pos = 0
+    lines_checked = 0
+
+    if script.startswith("#!"):
+        nl = script.find("\n")
+        if nl == -1:
+            return len(script)
+        pos = nl + 1
+        lines_checked = 1
+
+    check_pos = pos
+    for _ in range(2 - lines_checked):
+        nl = script.find("\n", check_pos)
+        line = script[check_pos:nl] if nl != -1 else script[check_pos:]
+        if _CODING_RE.match(line):
+            return nl + 1 if nl != -1 else len(script)
+        if nl == -1:
+            break
+        check_pos = nl + 1
+
+    return pos
+
+
 def add_dependencies(script: str, new_deps: Sequence[str]) -> str:
     it = (m for m in re.finditer(REGEX, script) if m.group("type") == "script")
     match = next(it, None)
@@ -89,53 +118,12 @@ def add_dependencies(script: str, new_deps: Sequence[str]) -> str:
         deps_lines.append("]\n")
         content = _add_comment_prefix("".join(deps_lines))
         block = f"# /// script\n{content}# ///\n"
-        if script.startswith("#!"):
-            newline_pos = script.find("\n")
-            if newline_pos == -1:
-                return script + "\n\n" + block
-            insert_at = newline_pos + 1
-            # Preserve encoding cookie on line 2 (must stay in first
-            # two lines for Python to recognize it)
-            second_line_end = script.find("\n", insert_at)
-            if second_line_end != -1:
-                second_line = script[insert_at:second_line_end]
-            else:
-                second_line = script[insert_at:]
-            if _CODING_RE.match(second_line):
-                insert_at = (
-                    second_line_end + 1
-                    if second_line_end != -1
-                    else len(script)
-                )
-            return script[:insert_at] + "\n" + block + script[insert_at:]
+        insert_at = _block_insert_pos(script)
+        if insert_at > 0:
+            prefix = script[:insert_at]
+            if not prefix.endswith("\n"):
+                prefix += "\n"
+            return prefix + "\n" + block + script[insert_at:]
         if script:
-            # PEP 263: encoding cookie can be on line 1 or line 2
-            first_line_end = script.find("\n")
-            first_line = (
-                script[:first_line_end] if first_line_end != -1 else script
-            )
-            if _CODING_RE.match(first_line):
-                insert_at = (
-                    first_line_end + 1 if first_line_end != -1 else len(script)
-                )
-                return script[:insert_at] + "\n" + block + script[insert_at:]
-            # Check line 2 (valid when line 1 is a comment or blank)
-            if first_line_end != -1:
-                second_start = first_line_end + 1
-                second_line_end = script.find("\n", second_start)
-                second_line = (
-                    script[second_start:second_line_end]
-                    if second_line_end != -1
-                    else script[second_start:]
-                )
-                if _CODING_RE.match(second_line):
-                    insert_at = (
-                        second_line_end + 1
-                        if second_line_end != -1
-                        else len(script)
-                    )
-                    return (
-                        script[:insert_at] + "\n" + block + script[insert_at:]
-                    )
             return block + "\n" + script
         return block
