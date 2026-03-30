@@ -86,6 +86,24 @@ import httpx
 """,
         ),
         (
+            """\
+# /// script
+# dependencies = [
+#   "importlib-metadata; python_version < '3.10'",
+# ]
+# ///
+""",
+            ["importlib-metadata; python_version >= '3.10'"],
+            """\
+# /// script
+# dependencies = [
+#   "importlib-metadata; python_version < '3.10'",
+#   "importlib-metadata; python_version >= '3.10'",
+# ]
+# ///
+""",
+        ),
+        (
             script_without_block,
             ["requests", "rich"],
             """\
@@ -193,6 +211,7 @@ import time
         "skip case-insensitive duplicate",
         "skip hyphen-underscore normalized duplicate",
         "skip dot-underscore normalized duplicate",
+        "marker-specific requirements are distinct",
         "create new block when missing",
         "create block for empty script",
         "deduplicate in new_deps",

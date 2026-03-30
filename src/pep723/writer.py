@@ -9,18 +9,29 @@ import tomlkit
 from pep723.parser import REGEX
 
 
-def _pkg_name(specifier: str) -> str:
-    """Normalize a specifier to its canonical package key for dedup.
+def _pkg_key(specifier: str) -> str:
+    """Build a canonical dedup key from a dependency specifier.
 
-    Extras (e.g. requests[socks]) are preserved so that a bare package
-    and its extras variant are NOT treated as duplicates.
+    Extras (e.g. requests[socks]) and environment markers
+    (e.g. ; python_version < '3.10') are preserved so that distinct
+    conditional requirements are NOT collapsed into one entry.
     """
-    return (
-        re.split(r"[<>=!~;\s]", specifier, maxsplit=1)[0]
+    semicolon = specifier.find(";")
+    if semicolon != -1:
+        requirement = specifier[:semicolon]
+        marker = specifier[semicolon:]
+    else:
+        requirement = specifier
+        marker = ""
+    name = (
+        re.split(r"[<>=!~,\s]", requirement, maxsplit=1)[0]
         .lower()
         .replace("-", "_")
         .replace(".", "_")
     )
+    if marker:
+        return name + marker
+    return name
 
 
 def _strip_comment_prefix(content: str) -> str:
@@ -55,11 +66,11 @@ def add_dependencies(script: str, new_deps: Sequence[str]) -> str:
             arr.multiline(True)
             config.add("dependencies", arr)
         existing_deps = cast(list[Any], config["dependencies"])
-        existing_names = {_pkg_name(d) for d in existing_deps}
+        existing_names = {_pkg_key(d) for d in existing_deps}
         for dep in new_deps:
-            if _pkg_name(dep) not in existing_names:
+            if _pkg_key(dep) not in existing_names:
                 existing_deps.append(dep)
-                existing_names.add(_pkg_name(dep))
+                existing_names.add(_pkg_key(dep))
         new_content = _add_comment_prefix(tomlkit.dumps(config))
         start, end = match.span("content")
         return script[:start] + new_content + script[end:]
@@ -67,7 +78,7 @@ def add_dependencies(script: str, new_deps: Sequence[str]) -> str:
         seen_names: set[str] = set()
         deduped: list[str] = []
         for dep in new_deps:
-            name = _pkg_name(dep)
+            name = _pkg_key(dep)
             if name not in seen_names:
                 deduped.append(dep)
                 seen_names.add(name)

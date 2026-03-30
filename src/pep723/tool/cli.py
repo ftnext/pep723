@@ -25,7 +25,16 @@ def parse_args() -> RunArgs | AddArgs:
     import sys
 
     argv = sys.argv[1:]
-    if not argv or argv[0] not in _SUBCOMMANDS:
+    # Treat as subcommand only when enough args follow to satisfy it.
+    # This preserves backward compat for scripts literally named
+    # "run" or "add": `python -m pep723.tool add` runs script "add".
+    is_subcommand = False
+    if argv and argv[0] in _SUBCOMMANDS:
+        if argv[0] == "add" and len(argv) >= 3:
+            is_subcommand = True
+        elif argv[0] == "run" and len(argv) >= 2:
+            is_subcommand = True
+    if not is_subcommand:
         argv = ["run"] + argv
 
     parser = argparse.ArgumentParser()
