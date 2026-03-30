@@ -240,6 +240,25 @@ import sys
 import sys
 """,
         ),
+        (
+            """\
+# My script
+# -*- coding: cp932 -*-
+import sys
+""",
+            ["requests"],
+            """\
+# My script
+# -*- coding: cp932 -*-
+
+# /// script
+# dependencies = [
+#   "requests",
+# ]
+# ///
+import sys
+""",
+        ),
     ],
     ids=[
         "add new dep to existing block",
@@ -257,6 +276,7 @@ import sys
         "preserve shebang-only file when inserting new block",
         "preserve shebang and encoding cookie",
         "preserve encoding cookie without shebang",
+        "preserve second-line encoding cookie without shebang",
     ],
 )
 def test_add_dependencies(

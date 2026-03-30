@@ -109,8 +109,7 @@ def add_dependencies(script: str, new_deps: Sequence[str]) -> str:
                 )
             return script[:insert_at] + "\n" + block + script[insert_at:]
         if script:
-            # Encoding cookie on line 1 (no shebang) must stay in
-            # the first two lines for Python to recognize it
+            # PEP 263: encoding cookie can be on line 1 or line 2
             first_line_end = script.find("\n")
             first_line = (
                 script[:first_line_end] if first_line_end != -1 else script
@@ -120,5 +119,23 @@ def add_dependencies(script: str, new_deps: Sequence[str]) -> str:
                     first_line_end + 1 if first_line_end != -1 else len(script)
                 )
                 return script[:insert_at] + "\n" + block + script[insert_at:]
+            # Check line 2 (valid when line 1 is a comment or blank)
+            if first_line_end != -1:
+                second_start = first_line_end + 1
+                second_line_end = script.find("\n", second_start)
+                second_line = (
+                    script[second_start:second_line_end]
+                    if second_line_end != -1
+                    else script[second_start:]
+                )
+                if _CODING_RE.match(second_line):
+                    insert_at = (
+                        second_line_end + 1
+                        if second_line_end != -1
+                        else len(script)
+                    )
+                    return (
+                        script[:insert_at] + "\n" + block + script[insert_at:]
+                    )
             return block + "\n" + script
         return block
