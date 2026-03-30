@@ -14,6 +14,9 @@ keywords = ["inline script metadata"]
 classifiers = [
     "Development Status :: 1 - Planning",
     "License :: OSI Approved :: Apache Software License",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
@@ -48,8 +51,8 @@ pre_test = "task format"
 test = "pytest -v"
 post_test = "task check"
 format = "task format_autoflake && task format_pyupgrade && task format_black && task format_isort"
-format_autoflake = "autoflake --in-place --remove-all-unused-imports $(find src tests -name '*.py') setup.py"
-format_pyupgrade = "pyupgrade $(find src tests -name '*.py') setup.py"
+format_autoflake = "python scripts/run_dev_tool.py autoflake"
+format_pyupgrade = "python scripts/run_dev_tool.py pyupgrade"
 format_black = "black -l 79 src tests setup.py"
 format_isort = "isort --profile black -l 79 src tests setup.py"
 check = "task check_flake8 && task check_mypy"
