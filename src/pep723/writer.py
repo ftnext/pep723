@@ -8,6 +8,8 @@ import tomlkit
 
 from pep723.parser import REGEX
 
+_CODING_RE = re.compile(r"^[ \t\f]*#.*?coding[:=][ \t]*([-\w.]+)", re.ASCII)
+
 
 def _pkg_key(specifier: str) -> str:
     """Build a canonical dedup key from a dependency specifier.
@@ -92,10 +94,21 @@ def add_dependencies(script: str, new_deps: Sequence[str]) -> str:
             newline_pos = script.find("\n")
             if newline_pos == -1:
                 return script + "\n\n" + block
-            first_newline = newline_pos + 1
-            return (
-                script[:first_newline] + "\n" + block + script[first_newline:]
-            )
+            insert_at = newline_pos + 1
+            # Preserve encoding cookie on line 2 (must stay in first
+            # two lines for Python to recognize it)
+            second_line_end = script.find("\n", insert_at)
+            if second_line_end != -1:
+                second_line = script[insert_at:second_line_end]
+            else:
+                second_line = script[insert_at:]
+            if _CODING_RE.match(second_line):
+                insert_at = (
+                    second_line_end + 1
+                    if second_line_end != -1
+                    else len(script)
+                )
+            return script[:insert_at] + "\n" + block + script[insert_at:]
         if script:
             return block + "\n" + script
         return block

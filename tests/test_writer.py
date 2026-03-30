@@ -204,6 +204,25 @@ import time
 # ///
 """,
         ),
+        (
+            """\
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+import sys
+""",
+            ["requests"],
+            """\
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+# /// script
+# dependencies = [
+#   "requests",
+# ]
+# ///
+import sys
+""",
+        ),
     ],
     ids=[
         "add new dep to existing block",
@@ -219,6 +238,7 @@ import time
         "extras variant is not a duplicate of bare package",
         "preserve shebang when inserting new block",
         "preserve shebang-only file when inserting new block",
+        "preserve shebang and encoding cookie",
     ],
 )
 def test_add_dependencies(
