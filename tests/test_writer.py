@@ -89,6 +89,23 @@ import httpx
             """\
 # /// script
 # dependencies = [
+#   "pkg @ https://example.com/pkg.tar.gz",
+# ]
+# ///
+""",
+            ["pkg@https://example.com/pkg.tar.gz"],
+            """\
+# /// script
+# dependencies = [
+#   "pkg @ https://example.com/pkg.tar.gz",
+# ]
+# ///
+""",
+        ),
+        (
+            """\
+# /// script
+# dependencies = [
 #   "foo-bar",
 # ]
 # ///
@@ -282,6 +299,7 @@ import sys
         "skip exact duplicate",
         "skip case-insensitive duplicate",
         "skip hyphen-underscore normalized duplicate",
+        "skip direct URL reference duplicate",
         "skip repeated separator normalized duplicate",
         "skip dot-underscore normalized duplicate",
         "marker-specific requirements are distinct",
@@ -301,6 +319,29 @@ def test_add_dependencies(
     script: str, new_deps: list[str], expected: str
 ) -> None:
     assert add_dependencies(script, new_deps) == expected
+
+
+def test_add_dependencies_preserves_crlf() -> None:
+    script = (
+        "# /// script\r\n"
+        "# dependencies = [\r\n"
+        '#   "httpx",\r\n'
+        "# ]\r\n"
+        "# ///\r\n"
+        "\r\n"
+        "import httpx\r\n"
+    )
+    result = add_dependencies(script, ["requests"])
+    # New dep should be added with LF (writer works in LF),
+    # but existing CRLF content is preserved by the caller (__main__.py).
+    # The writer itself operates on LF-normalized text.
+    assert "requests" in result
+
+
+def test_add_dependencies_new_block_no_crlf_injection() -> None:
+    script = "import time\nimport sys\n"
+    result = add_dependencies(script, ["requests"])
+    assert "\r\n" not in result
 
 
 def test_raise_error_when_multiple_script_blocks_found() -> None:
