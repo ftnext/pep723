@@ -25,12 +25,8 @@ def _pkg_key(specifier: str) -> str:
     else:
         requirement = specifier
         marker = ""
-    name = (
-        re.split(r"[<>=!~,\s]", requirement, maxsplit=1)[0]
-        .lower()
-        .replace("-", "_")
-        .replace(".", "_")
-    )
+    raw_name = re.split(r"[<>=!~,\s]", requirement, maxsplit=1)[0]
+    name = re.sub(r"[-_.]+", "_", raw_name).lower()
     if marker:
         return name + marker
     return name

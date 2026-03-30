@@ -89,6 +89,23 @@ import httpx
             """\
 # /// script
 # dependencies = [
+#   "foo-bar",
+# ]
+# ///
+""",
+            ["foo__bar"],
+            """\
+# /// script
+# dependencies = [
+#   "foo-bar",
+# ]
+# ///
+""",
+        ),
+        (
+            """\
+# /// script
+# dependencies = [
 #   "importlib-metadata; python_version < '3.10'",
 # ]
 # ///
@@ -265,6 +282,7 @@ import sys
         "skip exact duplicate",
         "skip case-insensitive duplicate",
         "skip hyphen-underscore normalized duplicate",
+        "skip repeated separator normalized duplicate",
         "skip dot-underscore normalized duplicate",
         "marker-specific requirements are distinct",
         "create new block when missing",
