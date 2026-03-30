@@ -22,7 +22,7 @@ _SUBCOMMANDS = {"run", "add"}
 
 def parse_args() -> RunArgs | AddArgs:
     argv = sys.argv[1:]
-    if not argv or argv[0] not in _SUBCOMMANDS:
+    if argv and argv[0] not in _SUBCOMMANDS and not argv[0].startswith("-"):
         argv = ["run"] + argv
 
     parser = argparse.ArgumentParser()
