@@ -5,8 +5,7 @@ from collections.abc import Sequence
 from typing import Any, cast
 
 import tomlkit
-from packaging.requirements import InvalidRequirement
-from packaging.requirements import Requirement
+from packaging.requirements import InvalidRequirement, Requirement
 from packaging.utils import canonicalize_name
 
 from pep723.parser import REGEX
