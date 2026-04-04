@@ -470,7 +470,9 @@ class TestRequiresPython:
         result = add_dependencies("", ["requests"])
         assert f'requires-python = "{expected_version}"' in result
 
-    def test_existing_block_preserves_requires_python(self) -> None:
+    def test_existing_block_updates_requires_python_when_specified(
+        self,
+    ) -> None:
         script = """\
 # /// script
 # requires-python = ">=3.11"
@@ -482,14 +484,97 @@ class TestRequiresPython:
         result = add_dependencies(
             script, ["requests"], requires_python=">=3.13"
         )
-        assert 'requires-python = ">=3.11"' in result
-        assert 'requires-python = ">=3.13"' not in result
+        assert 'requires-python = ">=3.13"' in result
+        assert 'requires-python = ">=3.11"' not in result
 
-    def test_existing_block_without_requires_python_not_added(self) -> None:
+    def test_existing_block_preserves_requires_python_when_not_specified(
+        self,
+    ) -> None:
+        script = """\
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#   "httpx",
+# ]
+# ///
+"""
+        result = add_dependencies(script, ["requests"])
+        assert 'requires-python = ">=3.11"' in result
+
+    def test_existing_block_adds_requires_python_when_specified(
+        self,
+    ) -> None:
         result = add_dependencies(
             script_with_block, ["requests"], requires_python=">=3.13"
         )
+        assert 'requires-python = ">=3.13"' in result
+
+    def test_existing_block_without_requires_python_stays_without(
+        self,
+    ) -> None:
+        result = add_dependencies(script_with_block, ["requests"])
         assert "requires-python" not in result
+
+    def test_existing_block_overwrites_compound_specifier(self) -> None:
+        script = """\
+# /// script
+# requires-python = ">=3.10,<4"
+# dependencies = [
+#   "httpx",
+# ]
+# ///
+"""
+        result = add_dependencies(
+            script, ["requests"], requires_python=">=3.13"
+        )
+        assert 'requires-python = ">=3.13"' in result
+        assert "<4" not in result
+        assert ">=3.10" not in result
+
+    def test_existing_block_replaces_compatible_release_operator(self) -> None:
+        script = """\
+# /// script
+# requires-python = "~=3.11.0"
+# dependencies = [
+#   "httpx",
+# ]
+# ///
+"""
+        result = add_dependencies(
+            script, ["requests"], requires_python=">=3.13"
+        )
+        assert ">=3.13" in result
+        assert "~=3.11" not in result
+
+    def test_existing_block_replaces_exact_version_operator(self) -> None:
+        script = """\
+# /// script
+# requires-python = "==3.11.*"
+# dependencies = [
+#   "httpx",
+# ]
+# ///
+"""
+        result = add_dependencies(
+            script, ["requests"], requires_python=">=3.13"
+        )
+        assert ">=3.13" in result
+        assert "==3.11" not in result
+
+    def test_existing_block_replaces_arbitrary_equality_operator(self) -> None:
+        script = """\
+# /// script
+# requires-python = "===3.11"
+# dependencies = [
+#   "httpx",
+# ]
+# ///
+"""
+        result = add_dependencies(
+            script, ["requests"], requires_python=">=3.13"
+        )
+        assert ">=3.13" in result
+        assert "===3.11" not in result
 
     def test_new_block_requires_python_before_dependencies(self) -> None:
         result = add_dependencies("", ["requests"], requires_python=">=3.12")

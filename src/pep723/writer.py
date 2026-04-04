@@ -127,6 +127,16 @@ def _default_requires_python() -> str:
     return f">={sys.version_info.major}.{sys.version_info.minor}"
 
 
+def _merge_requires_python(existing: str, incoming: str) -> str:
+    """Replace *existing* requires-python with *incoming* value.
+
+    When ``--python`` is explicitly specified, the existing
+    ``requires-python`` is unconditionally overwritten with the new value
+    regardless of the specifier form (``~=``, ``==.*``, ``>=``, etc.).
+    """
+    return incoming
+
+
 def add_dependencies(
     script: str,
     new_deps: Sequence[str],
@@ -154,6 +164,14 @@ def add_dependencies(
                 "new dependency",
                 "dependency in script block",
             )
+        if requires_python is not None:
+            existing_rp = config.get("requires-python")
+            if existing_rp is not None:
+                config["requires-python"] = _merge_requires_python(
+                    str(existing_rp), requires_python
+                )
+            else:
+                config["requires-python"] = requires_python
         new_content = _add_comment_prefix(tomlkit.dumps(config))
         start, end = match.span("content")
         return script[:start] + new_content + script[end:]

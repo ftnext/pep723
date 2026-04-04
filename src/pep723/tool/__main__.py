@@ -1,8 +1,10 @@
 import io
-import re
 import sys
 import tempfile
 import tokenize
+
+from packaging.specifiers import InvalidSpecifier, Specifier
+from packaging.version import InvalidVersion, Version
 
 from pep723.parser import parse
 from pep723.tool import venv
@@ -10,18 +12,20 @@ from pep723.tool.cli import AddArgs, parse_args
 from pep723.tool.runner import run
 from pep723.writer import add_dependencies
 
-_BARE_VERSION_RE = re.compile(r"^\d+(\.\d+)*$")
-
 args = parse_args()
 
 if isinstance(args, AddArgs):
-    if args.python and not _BARE_VERSION_RE.match(args.python):
-        print(
-            f"Error: --python requires a bare version number "
-            f"(e.g. '3.13'), got '{args.python}'",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+    if args.python:
+        try:
+            Version(args.python)
+            Specifier(f">={args.python}")
+        except (InvalidVersion, InvalidSpecifier):
+            print(
+                f"Error: --python requires a bare version number "
+                f"(e.g. '3.13'), got '{args.python}'",
+                file=sys.stderr,
+            )
+            sys.exit(1)
     raw = args.script.read_bytes()
     encoding = tokenize.detect_encoding(io.BytesIO(raw).readline)[0]
     script_text = raw.decode(encoding)
