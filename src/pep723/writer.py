@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import sys
 from collections.abc import Sequence
 from typing import Any, cast
 
@@ -122,7 +123,15 @@ def _block_insert_pos(script: str) -> int:
     return pos
 
 
-def add_dependencies(script: str, new_deps: Sequence[str]) -> str:
+def _default_requires_python() -> str:
+    return f">={sys.version_info.major}.{sys.version_info.minor}"
+
+
+def add_dependencies(
+    script: str,
+    new_deps: Sequence[str],
+    requires_python: str | None = None,
+) -> str:
     it = (m for m in re.finditer(REGEX, script) if m.group("type") == "script")
     match = next(it, None)
     if match is not None and next(it, None) is not None:
@@ -149,12 +158,16 @@ def add_dependencies(script: str, new_deps: Sequence[str]) -> str:
         start, end = match.span("content")
         return script[:start] + new_content + script[end:]
 
+    if requires_python is None:
+        requires_python = _default_requires_python()
+
     deduped = _deduplicate(new_deps)
+    rp_line = f'requires-python = "{requires_python}"\n'
     deps_lines = ["dependencies = [\n"]
     for dep in deduped:
         deps_lines.append(f'  "{dep}",\n')
     deps_lines.append("]\n")
-    content = _add_comment_prefix("".join(deps_lines))
+    content = _add_comment_prefix(rp_line + "".join(deps_lines))
     block = f"# /// script\n{content}# ///\n"
     insert_at = _block_insert_pos(script)
     if insert_at > 0:

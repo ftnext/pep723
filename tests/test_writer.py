@@ -24,7 +24,7 @@ empty_script = ""
 
 
 @pytest.mark.parametrize(
-    "script,new_deps,expected",
+    "script,new_deps,expected,requires_python",
     [
         (
             script_with_block,
@@ -40,16 +40,19 @@ empty_script = ""
 
 import httpx
 """,
+            None,
         ),
         (
             script_with_block,
             ["httpx"],
             script_with_block,
+            None,
         ),
         (
             script_with_block,
             ["Httpx"],
             script_with_block,
+            None,
         ),
         (
             """\
@@ -67,6 +70,7 @@ import httpx
 # ]
 # ///
 """,
+            None,
         ),
         (
             """\
@@ -84,6 +88,7 @@ import httpx
 # ]
 # ///
 """,
+            None,
         ),
         (
             """\
@@ -101,6 +106,7 @@ import httpx
 # ]
 # ///
 """,
+            None,
         ),
         (
             """\
@@ -118,6 +124,7 @@ import httpx
 # ]
 # ///
 """,
+            None,
         ),
         (
             """\
@@ -136,12 +143,14 @@ import httpx
 # ]
 # ///
 """,
+            None,
         ),
         (
             script_without_block,
             ["requests", "rich"],
             """\
 # /// script
+# requires-python = ">=3.12"
 # dependencies = [
 #   "requests",
 #   "rich",
@@ -151,23 +160,27 @@ import httpx
 import time
 import sys
 """,
+            ">=3.12",
         ),
         (
             empty_script,
             ["requests"],
             """\
 # /// script
+# requires-python = ">=3.12"
 # dependencies = [
 #   "requests",
 # ]
 # ///
 """,
+            ">=3.12",
         ),
         (
             script_without_block,
             ["requests", "requests"],
             """\
 # /// script
+# requires-python = ">=3.12"
 # dependencies = [
 #   "requests",
 # ]
@@ -176,6 +189,7 @@ import sys
 import time
 import sys
 """,
+            ">=3.12",
         ),
         (
             """\
@@ -192,6 +206,7 @@ import sys
 # ]
 # ///
 """,
+            None,
         ),
         (
             script_with_block,
@@ -206,6 +221,7 @@ import sys
 
 import httpx
 """,
+            None,
         ),
         (
             """\
@@ -217,12 +233,14 @@ import time
 #!/usr/bin/env python
 
 # /// script
+# requires-python = ">=3.12"
 # dependencies = [
 #   "requests",
 # ]
 # ///
 import time
 """,
+            ">=3.12",
         ),
         (
             "#!/usr/bin/env python",
@@ -231,11 +249,13 @@ import time
 #!/usr/bin/env python
 
 # /// script
+# requires-python = ">=3.12"
 # dependencies = [
 #   "requests",
 # ]
 # ///
 """,
+            ">=3.12",
         ),
         (
             """\
@@ -249,12 +269,14 @@ import sys
 # -*- coding: utf-8 -*-
 
 # /// script
+# requires-python = ">=3.12"
 # dependencies = [
 #   "requests",
 # ]
 # ///
 import sys
 """,
+            ">=3.12",
         ),
         (
             """\
@@ -266,12 +288,14 @@ import sys
 # -*- coding: cp932 -*-
 
 # /// script
+# requires-python = ">=3.12"
 # dependencies = [
 #   "requests",
 # ]
 # ///
 import sys
 """,
+            ">=3.12",
         ),
         (
             """\
@@ -285,12 +309,14 @@ import sys
 # -*- coding: cp932 -*-
 
 # /// script
+# requires-python = ">=3.12"
 # dependencies = [
 #   "requests",
 # ]
 # ///
 import sys
 """,
+            ">=3.12",
         ),
     ],
     ids=[
@@ -315,9 +341,15 @@ import sys
     ],
 )
 def test_add_dependencies(
-    script: str, new_deps: list[str], expected: str
+    script: str,
+    new_deps: list[str],
+    expected: str,
+    requires_python: str | None,
 ) -> None:
-    assert add_dependencies(script, new_deps) == expected
+    assert (
+        add_dependencies(script, new_deps, requires_python=requires_python)
+        == expected
+    )
 
 
 def test_add_dependencies_preserves_crlf() -> None:
@@ -339,7 +371,7 @@ def test_add_dependencies_preserves_crlf() -> None:
 
 def test_add_dependencies_new_block_no_crlf_injection() -> None:
     script = "import time\nimport sys\n"
-    result = add_dependencies(script, ["requests"])
+    result = add_dependencies(script, ["requests"], requires_python=">=3.12")
     assert "\r\n" not in result
 
 
@@ -369,6 +401,7 @@ import time
 """
     expected = """\
 # /// script
+# requires-python = ">=3.12"
 # dependencies = [
 #   "httpx[brotli,http2]",
 # ]
@@ -377,7 +410,12 @@ import time
 import time
 """
     assert (
-        add_dependencies(script, ["httpx[http2]", "httpx[brotli]"]) == expected
+        add_dependencies(
+            script,
+            ["httpx[http2]", "httpx[brotli]"],
+            requires_python=">=3.12",
+        )
+        == expected
     )
 
 
@@ -415,3 +453,46 @@ def test_raise_error_for_invalid_existing_dependency() -> None:
         match=r"Invalid dependency in script block: 'not valid @ @'",
     ):
         add_dependencies(script, ["requests"])
+
+
+class TestRequiresPython:
+    def test_new_block_with_explicit_python(self) -> None:
+        result = add_dependencies("", ["requests"], requires_python=">=3.13")
+        assert 'requires-python = ">=3.13"' in result
+        assert '"requests"' in result
+
+    def test_new_block_defaults_to_running_python(self) -> None:
+        import sys
+
+        expected_version = (
+            f">={sys.version_info.major}.{sys.version_info.minor}"
+        )
+        result = add_dependencies("", ["requests"])
+        assert f'requires-python = "{expected_version}"' in result
+
+    def test_existing_block_preserves_requires_python(self) -> None:
+        script = """\
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#   "httpx",
+# ]
+# ///
+"""
+        result = add_dependencies(
+            script, ["requests"], requires_python=">=3.13"
+        )
+        assert 'requires-python = ">=3.11"' in result
+        assert 'requires-python = ">=3.13"' not in result
+
+    def test_existing_block_without_requires_python_not_added(self) -> None:
+        result = add_dependencies(
+            script_with_block, ["requests"], requires_python=">=3.13"
+        )
+        assert "requires-python" not in result
+
+    def test_new_block_requires_python_before_dependencies(self) -> None:
+        result = add_dependencies("", ["requests"], requires_python=">=3.12")
+        rp_pos = result.index("requires-python")
+        deps_pos = result.index("dependencies")
+        assert rp_pos < deps_pos

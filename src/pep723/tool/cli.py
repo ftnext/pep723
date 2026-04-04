@@ -15,6 +15,7 @@ class RunArgs:
 class AddArgs:
     script: Path
     dependencies: list[str]
+    python: str | None = None
 
 
 _SUBCOMMANDS = {"run", "add"}
@@ -32,6 +33,7 @@ def parse_args() -> RunArgs | AddArgs:
     run_parser.add_argument("script", type=Path)
 
     add_parser = subparsers.add_parser("add")
+    add_parser.add_argument("--python", default=None)
     add_parser.add_argument("script", type=Path)
     add_parser.add_argument("dependencies", nargs="+")
 
@@ -40,5 +42,6 @@ def parse_args() -> RunArgs | AddArgs:
         return AddArgs(
             script=args.script,
             dependencies=args.dependencies,
+            python=args.python,
         )
     return RunArgs(script=args.script)
