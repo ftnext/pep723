@@ -5,31 +5,67 @@ from collections.abc import Sequence
 from typing import Any, cast
 
 import tomlkit
+from packaging.requirements import InvalidRequirement
+from packaging.requirements import Requirement
+from packaging.utils import canonicalize_name
 
 from pep723.parser import REGEX
 
 _CODING_RE = re.compile(r"^[ \t\f]*#.*?coding[:=][ \t]*([-\w.]+)", re.ASCII)
 
 
-def _pkg_key(specifier: str) -> str:
-    """Build a canonical dedup key from a dependency specifier.
+def _merge_key(
+    requirement: Requirement,
+) -> tuple[str, str, str | None, str | None]:
+    return (
+        canonicalize_name(requirement.name),
+        str(requirement.specifier),
+        requirement.url,
+        None if requirement.marker is None else str(requirement.marker),
+    )
 
-    Extras (e.g. requests[socks]) and environment markers
-    (e.g. ; python_version < '3.10') are preserved so that distinct
-    conditional requirements are NOT collapsed into one entry.
-    """
-    semicolon = specifier.find(";")
-    if semicolon != -1:
-        requirement = specifier[:semicolon]
-        marker = specifier[semicolon:]
+
+def _merge_requirement_strings(existing: str, incoming: str) -> str:
+    existing_req = _parse_requirement(existing, "existing dependency")
+    incoming_req = _parse_requirement(incoming, "new dependency")
+
+    if _merge_key(existing_req) != _merge_key(incoming_req):
+        return existing
+
+    merged_extras = sorted(existing_req.extras | incoming_req.extras)
+    if merged_extras == sorted(existing_req.extras):
+        return existing
+
+    requirement = existing_req.name
+    if merged_extras:
+        requirement += f"[{','.join(merged_extras)}]"
+    requirement += str(existing_req.specifier)
+    if existing_req.url is not None:
+        requirement += f" @ {existing_req.url}"
+    if existing_req.marker is not None:
+        requirement += f"; {existing_req.marker}"
+    return requirement
+
+
+def _parse_requirement(dep: str, source: str) -> Requirement:
+    try:
+        return Requirement(dep)
+    except InvalidRequirement as exc:
+        raise ValueError(f"Invalid {source}: {dep!r}") from exc
+
+
+def _merge_into_requirements_list(
+    deps: list[str], dep: str, dep_source: str, existing_source: str
+) -> None:
+    req = _parse_requirement(dep, dep_source)
+    key = _merge_key(req)
+    for index, existing in enumerate(deps):
+        existing_req = _parse_requirement(existing, existing_source)
+        if _merge_key(existing_req) == key:
+            deps[index] = _merge_requirement_strings(existing, dep)
+            break
     else:
-        requirement = specifier
-        marker = ""
-    raw_name = re.split(r"[<>=!~,@\s]", requirement, maxsplit=1)[0]
-    name = re.sub(r"[-_.]+", "_", raw_name).lower()
-    if marker:
-        return name + marker
-    return name
+        deps.append(dep)
 
 
 def _strip_comment_prefix(content: str) -> str:
@@ -47,13 +83,14 @@ def _add_comment_prefix(toml_str: str) -> str:
 
 
 def _deduplicate(deps: Sequence[str]) -> list[str]:
-    seen: set[str] = set()
     result: list[str] = []
     for dep in deps:
-        key = _pkg_key(dep)
-        if key not in seen:
-            result.append(dep)
-            seen.add(key)
+        _merge_into_requirements_list(
+            result,
+            dep,
+            "new dependency",
+            "new dependency",
+        )
     return result
 
 
@@ -102,12 +139,13 @@ def add_dependencies(script: str, new_deps: Sequence[str]) -> str:
             arr.multiline(True)
             config.add("dependencies", arr)
         existing_deps = cast(list[Any], config["dependencies"])
-        existing_names = {_pkg_key(d) for d in existing_deps}
         for dep in new_deps:
-            key = _pkg_key(dep)
-            if key not in existing_names:
-                existing_deps.append(dep)
-                existing_names.add(key)
+            _merge_into_requirements_list(
+                existing_deps,
+                dep,
+                "new dependency",
+                "dependency in script block",
+            )
         new_content = _add_comment_prefix(tomlkit.dumps(config))
         start, end = match.span("content")
         return script[:start] + new_content + script[end:]
