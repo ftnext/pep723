@@ -393,3 +393,25 @@ def test_raise_error_when_multiple_script_blocks_found() -> None:
 """
     with pytest.raises(ValueError):
         add_dependencies(script, ["requests"])
+
+
+def test_raise_error_for_invalid_new_dependency() -> None:
+    with pytest.raises(
+        ValueError, match=r"Invalid new dependency: 'not valid @ @'"
+    ):
+        add_dependencies("", ["not valid @ @"])
+
+
+def test_raise_error_for_invalid_existing_dependency() -> None:
+    script = """\
+# /// script
+# dependencies = [
+#   "not valid @ @",
+# ]
+# ///
+"""
+    with pytest.raises(
+        ValueError,
+        match=r"Invalid dependency in script block: 'not valid @ @'",
+    ):
+        add_dependencies(script, ["requests"])

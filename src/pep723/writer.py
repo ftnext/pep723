@@ -5,6 +5,7 @@ from collections.abc import Sequence
 from typing import Any, cast
 
 import tomlkit
+from packaging.requirements import InvalidRequirement
 from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
 
@@ -25,8 +26,8 @@ def _merge_key(
 
 
 def _merge_requirement_strings(existing: str, incoming: str) -> str:
-    existing_req = Requirement(existing)
-    incoming_req = Requirement(incoming)
+    existing_req = _parse_requirement(existing, "existing dependency")
+    incoming_req = _parse_requirement(incoming, "new dependency")
 
     if _merge_key(existing_req) != _merge_key(incoming_req):
         return existing
@@ -46,6 +47,27 @@ def _merge_requirement_strings(existing: str, incoming: str) -> str:
     return requirement
 
 
+def _parse_requirement(dep: str, source: str) -> Requirement:
+    try:
+        return Requirement(dep)
+    except InvalidRequirement as exc:
+        raise ValueError(f"Invalid {source}: {dep!r}") from exc
+
+
+def _merge_into_requirements_list(
+    deps: list[str], dep: str, dep_source: str, existing_source: str
+) -> None:
+    req = _parse_requirement(dep, dep_source)
+    key = _merge_key(req)
+    for index, existing in enumerate(deps):
+        existing_req = _parse_requirement(existing, existing_source)
+        if _merge_key(existing_req) == key:
+            deps[index] = _merge_requirement_strings(existing, dep)
+            break
+    else:
+        deps.append(dep)
+
+
 def _strip_comment_prefix(content: str) -> str:
     return "".join(
         line[2:] if line.startswith("# ") else line[1:]
@@ -63,15 +85,12 @@ def _add_comment_prefix(toml_str: str) -> str:
 def _deduplicate(deps: Sequence[str]) -> list[str]:
     result: list[str] = []
     for dep in deps:
-        req = Requirement(dep)
-        key = _merge_key(req)
-        for index, existing in enumerate(result):
-            existing_req = Requirement(existing)
-            if _merge_key(existing_req) == key:
-                result[index] = _merge_requirement_strings(existing, dep)
-                break
-        else:
-            result.append(dep)
+        _merge_into_requirements_list(
+            result,
+            dep,
+            "new dependency",
+            "new dependency",
+        )
     return result
 
 
@@ -121,17 +140,12 @@ def add_dependencies(script: str, new_deps: Sequence[str]) -> str:
             config.add("dependencies", arr)
         existing_deps = cast(list[Any], config["dependencies"])
         for dep in new_deps:
-            req = Requirement(dep)
-            key = _merge_key(req)
-            for index, existing in enumerate(existing_deps):
-                existing_req = Requirement(existing)
-                if _merge_key(existing_req) == key:
-                    existing_deps[index] = _merge_requirement_strings(
-                        existing, dep
-                    )
-                    break
-            else:
-                existing_deps.append(dep)
+            _merge_into_requirements_list(
+                existing_deps,
+                dep,
+                "new dependency",
+                "dependency in script block",
+            )
         new_content = _add_comment_prefix(tomlkit.dumps(config))
         start, end = match.span("content")
         return script[:start] + new_content + script[end:]
