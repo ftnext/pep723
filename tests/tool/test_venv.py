@@ -18,6 +18,5 @@ def test_create_venv_with_dependencies(tmp_path):
     create_with_dependencies(tmp_path, dependencies)
 
     assert (
-        site_packages_dir(tmp_path)
-        / "the_solitary_castle_in_the_mirror"
+        site_packages_dir(tmp_path) / "the_solitary_castle_in_the_mirror"
     ).exists()

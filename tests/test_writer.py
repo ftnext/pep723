@@ -199,9 +199,8 @@ import sys
             """\
 # /// script
 # dependencies = [
-#   "httpx",
-#   "rich",
 #   "httpx[http2]",
+#   "rich",
 # ]
 # ///
 
@@ -307,7 +306,7 @@ import sys
         "create block for empty script",
         "deduplicate in new_deps",
         "create dependencies key when block has none",
-        "extras variant is not a duplicate of bare package",
+        "extras variant replaces bare package",
         "preserve shebang when inserting new block",
         "preserve shebang-only file when inserting new block",
         "preserve shebang and encoding cookie",
@@ -342,6 +341,44 @@ def test_add_dependencies_new_block_no_crlf_injection() -> None:
     script = "import time\nimport sys\n"
     result = add_dependencies(script, ["requests"])
     assert "\r\n" not in result
+
+
+def test_add_dependencies_merges_multiple_extra_variants() -> None:
+    script = """\
+# /// script
+# dependencies = [
+#   "httpx[http2]",
+# ]
+# ///
+"""
+    expected = """\
+# /// script
+# dependencies = [
+#   "httpx[brotli,http2]",
+# ]
+# ///
+"""
+    assert add_dependencies(script, ["httpx[brotli]"]) == expected
+
+
+def test_add_dependencies_merges_duplicate_new_deps_with_distinct_extras() -> (
+    None
+):
+    script = """\
+import time
+"""
+    expected = """\
+# /// script
+# dependencies = [
+#   "httpx[brotli,http2]",
+# ]
+# ///
+
+import time
+"""
+    assert (
+        add_dependencies(script, ["httpx[http2]", "httpx[brotli]"]) == expected
+    )
 
 
 def test_raise_error_when_multiple_script_blocks_found() -> None:
